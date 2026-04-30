@@ -20,7 +20,10 @@ app.add_middleware(
         "http://localhost:3000",
         "http://localhost:3001",
         "http://localhost:3002",
+        "https://agripulse-production-e978.up.railway.app",
         os.getenv("FRONTEND_URL", "http://localhost:3000"),
+        # Vercel deployments
+        "https://*.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
