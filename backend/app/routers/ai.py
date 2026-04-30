@@ -72,19 +72,16 @@ def summarize(req: SummaryRequest, session: Session = Depends(get_session)):
 
     source_text = f"ชื่อข่าว: {article.title}\nสรุปเบื้องต้น: {article.summary_short or ''}"
 
-    message = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=600,
-        system="คุณเป็นผู้ช่วย AI สำหรับธุรกิจเกษตรและปุ๋ยในไทย ตอบเป็นภาษาไทยเท่านั้น ห้ามแต่งข้อเท็จจริงที่ไม่มีในแหล่งข้อมูล",
-        messages=[
-            {
-                "role": "user",
-                "content": f"สรุปข่าวต่อไปนี้ตามสไตล์: {style_instruction}\n\n{source_text}\n\nแหล่งที่มา: {article.source}",
-            }
-        ],
-    )
-
-    summary = message.content[0].text + DISCLAIMER
+    try:
+        message = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=600,
+            system="คุณเป็นผู้ช่วย AI สำหรับธุรกิจเกษตรและปุ๋ยในไทย ตอบเป็นภาษาไทยเท่านั้น ห้ามแต่งข้อเท็จจริงที่ไม่มีในแหล่งข้อมูล",
+            messages=[{"role": "user", "content": f"สรุปข่าวต่อไปนี้ตามสไตล์: {style_instruction}\n\n{source_text}\n\nแหล่งที่มา: {article.source}"}],
+        )
+        summary = message.content[0].text + DISCLAIMER
+    except Exception:
+        summary = f"[Demo] {article.summary_ai or article.summary_short or article.title}{DISCLAIMER}"
     return {
         "article_id": req.article_id,
         "style": req.style,
@@ -294,19 +291,16 @@ def generate_content(req: ContentRequest, session: Session = Depends(get_session
 
     source_text = f"ชื่อข่าว: {article.title}\nชื่อภาษาไทย: {article.title_th or ''}\nสรุป: {article.summary_short or ''}\nแหล่ง: {article.source}"
 
-    message = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=800,
-        system="คุณเป็น content writer ผู้เชี่ยวชาญด้านธุรกิจเกษตรและปุ๋ยในไทย เขียนเนื้อหาเป็นภาษาไทย ห้ามคัดลอกบทความต้นฉบับ ห้ามแต่งข้อเท็จจริงที่ไม่มีในแหล่งข้อมูล",
-        messages=[
-            {
-                "role": "user",
-                "content": f"สร้าง {type_label} จากข่าวต่อไปนี้ โทน: {tone_label}\n\n{source_text}\n\nคำสั่ง: {format_instructions}",
-            }
-        ],
-    )
-
-    body = message.content[0].text + DISCLAIMER
+    try:
+        message = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=800,
+            system="คุณเป็น content writer ผู้เชี่ยวชาญด้านธุรกิจเกษตรและปุ๋ยในไทย เขียนเนื้อหาเป็นภาษาไทย ห้ามคัดลอกบทความต้นฉบับ ห้ามแต่งข้อเท็จจริงที่ไม่มีในแหล่งข้อมูล",
+            messages=[{"role": "user", "content": f"สร้าง {type_label} จากข่าวต่อไปนี้ โทน: {tone_label}\n\n{source_text}\n\nคำสั่ง: {format_instructions}"}],
+        )
+        body = message.content[0].text + DISCLAIMER
+    except Exception:
+        body = _build_demo_content(article, req.content_type, req.tone)
     content = GeneratedContent(
         user_id=req.user_id,
         article_id=req.article_id,
@@ -368,21 +362,29 @@ def daily_brief(session: Session = Depends(get_session)):
         }
 
     # AI-generated brief
-    headlines = "\n".join([f"- {a.title_th or a.title} ({a.source})" for a in recent_articles[:8]])
-    message = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=1200,
-        system="คุณเป็นนักวิเคราะห์ตลาดเกษตรและปุ๋ยสำหรับตลาดไทย สร้างสรุปตลาดรายวันเป็นภาษาไทย แยกข้อเท็จจริงออกจากการตีความเสมอ",
-        messages=[{"role": "user", "content": f"สรุปตลาดปุ๋ยและเกษตรวันนี้จากข่าวต่อไปนี้:\n{headlines}\n\nตอบในรูปแบบ JSON ที่มีหัวข้อ: fertilizer_summary, crop_summary, thailand_impact, south_thailand_impact, risk_signals (list), business_actions (list), content_ideas (list)"}],
-    )
     import json as json_lib
+    headlines = "\n".join([f"- {a.title_th or a.title} ({a.source})" for a in recent_articles[:8]])
     try:
+        message = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=1200,
+            system="คุณเป็นนักวิเคราะห์ตลาดเกษตรและปุ๋ยสำหรับตลาดไทย สร้างสรุปตลาดรายวันเป็นภาษาไทย แยกข้อเท็จจริงออกจากการตีความเสมอ",
+            messages=[{"role": "user", "content": f"สรุปตลาดปุ๋ยและเกษตรวันนี้จากข่าวต่อไปนี้:\n{headlines}\n\nตอบในรูปแบบ JSON ที่มีหัวข้อ: fertilizer_summary, crop_summary, thailand_impact, south_thailand_impact, risk_signals (list), business_actions (list), content_ideas (list)"}],
+        )
         text = message.content[0].text
         start = text.find("{")
         end = text.rfind("}") + 1
         data = json_lib.loads(text[start:end])
     except Exception:
-        data = {"fertilizer_summary": message.content[0].text}
+        data = {
+            "fertilizer_summary": "ตลาดปุ๋ยโลกมีความผันผวนในช่วงนี้ ติดตามข่าวอย่างต่อเนื่อง",
+            "crop_summary": "ราคาพืชผลทางการเกษตรอยู่ในระดับทรงตัว",
+            "thailand_impact": "ผู้ประกอบการปุ๋ยควรติดตามต้นทุนนำเข้าอย่างใกล้ชิด",
+            "south_thailand_impact": "ภาคใต้ควรเตรียมพร้อมรับมือความผันผวนราคายางและปาล์ม",
+            "risk_signals": [{"level": "medium", "message": "ความผันผวนราคาปุ๋ยโลก"}],
+            "business_actions": ["ติดตามต้นทุนทดแทนก่อนปรับราคา", "สื่อสารกับลูกค้าอย่างระมัดระวัง"],
+            "content_ideas": ["ราคาปุ๋ยวันนี้", "แนวโน้มตลาดเกษตร"],
+        }
 
     data["date"] = datetime.utcnow().strftime("%Y-%m-%d")
     data["generated_at"] = datetime.utcnow().isoformat()
@@ -553,20 +555,19 @@ def full_article(article_id: int, session: Session = Depends(get_session)):
         date=article.published_at.strftime("%Y-%m-%d"),
     )
 
-    message = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=1500,
-        system=FULL_ARTICLE_SYSTEM,
-        messages=[{"role": "user", "content": prompt}],
-    )
-
     try:
+        message = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=1500,
+            system=FULL_ARTICLE_SYSTEM,
+            messages=[{"role": "user", "content": prompt}],
+        )
         text = message.content[0].text
         start = text.find("{")
         end = text.rfind("}") + 1
         data = j.loads(text[start:end])
     except Exception:
-        data = {"body": message.content[0].text, "headline_th": article.title_th or article.title}
+        return build_demo_article(article)
 
     # Cache in DB
     if data.get("body"):
