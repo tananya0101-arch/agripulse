@@ -40,18 +40,27 @@ app.include_router(admin.router)
 
 @app.on_event("startup")
 def on_startup():
-    create_db_and_tables()
-    run_seed()
-    # Fetch fresh news in background on startup
+    import sys
+    try:
+        create_db_and_tables()
+        print("✅ DB tables ready.", flush=True)
+    except Exception as e:
+        print(f"❌ DB init error: {e}", file=sys.stderr, flush=True)
+        raise
+    try:
+        run_seed()
+    except Exception as e:
+        print(f"❌ Seed error: {e}", file=sys.stderr, flush=True)
+        raise
     import threading
     def _fetch():
         try:
             from app.fetcher import run_fetch
-            print("🌾 Auto-fetching news on startup...")
+            print("🌾 Auto-fetching news on startup...", flush=True)
             result = run_fetch()
-            print(f"✅ Auto-fetch done: {result['total_new']} new articles")
+            print(f"✅ Auto-fetch done: {result['total_new']} new articles", flush=True)
         except Exception as e:
-            print(f"⚠ Auto-fetch error: {e}")
+            print(f"⚠ Auto-fetch error: {e}", file=sys.stderr, flush=True)
     threading.Thread(target=_fetch, daemon=True).start()
 
 
