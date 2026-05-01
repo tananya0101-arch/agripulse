@@ -15,24 +15,28 @@ def debug_key():
     api_key = os.getenv("ANTHROPIC_API_KEY", "")
     masked = (api_key[:8] + "..." + api_key[-4:]) if len(api_key) > 12 else f"TOO_SHORT({len(api_key)})"
     is_placeholder = api_key == "your_api_key_here"
-    results = {}
     try:
         client = anthropic.Anthropic(api_key=api_key) if api_key and not is_placeholder else None
-        if client:
-            for model in ["claude-haiku-4-5-20251001", "claude-sonnet-4-6"]:
-                try:
-                    msg = client.messages.create(
-                        model=model, max_tokens=10,
-                        messages=[{"role": "user", "content": "say hi"}],
-                    )
-                    results[model] = "OK: " + msg.content[0].text
-                except Exception as e:
-                    results[model] = f"ERROR: {type(e).__name__}: {str(e)[:200]}"
-        else:
-            results["client"] = "no client"
+        if not client:
+            return {"key_present": bool(api_key), "key_masked": masked, "test": "no client"}
+        msg = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=200,
+            system="ตอบเป็น JSON เท่านั้น ห้ามมีข้อความนอก JSON",
+            messages=[{"role": "user", "content": 'สรุปข่าว "ราคาปุ๋ยขึ้น 10%" ในรูปแบบ JSON: {"headline": "...", "summary": "..."}'}],
+        )
+        raw = msg.content[0].text
+        import json as j
+        try:
+            start = raw.find("{"); end = raw.rfind("}") + 1
+            parsed = j.loads(raw[start:end])
+            parse_ok = True
+        except Exception as pe:
+            parsed = str(pe)
+            parse_ok = False
     except Exception as e:
-        results["init"] = f"ERROR: {type(e).__name__}: {e}"
-    return {"key_present": bool(api_key), "key_masked": masked, "is_placeholder": is_placeholder, "models": results}
+        return {"key_present": bool(api_key), "key_masked": masked, "error": f"{type(e).__name__}: {str(e)[:300]}"}
+    return {"key_present": bool(api_key), "key_masked": masked, "raw_response": raw, "parse_ok": parse_ok, "parsed": parsed}
 
 DISCLAIMER = "\n\n⚠️ สร้างโดย AI AgriPulse · ตรวจสอบข้อเท็จจริงก่อนใช้ · ดูแหล่งต้นฉบับเสมอ"
 
