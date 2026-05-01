@@ -22,7 +22,7 @@ def debug_key():
             return {"key_present": bool(api_key), "key_masked": masked, "test": "no client"}
         msg = client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=1500,
+            max_tokens=2000,
             system=FULL_ARTICLE_SYSTEM,
             messages=[{"role": "user", "content": FULL_ARTICLE_PROMPT.format(
                 title="India Issues New Urea Tender for 1.5 Million Tonne",
@@ -433,25 +433,12 @@ def daily_brief(session: Session = Depends(get_session)):
 # from headline + tags so users never need to leave the app.
 # ─────────────────────────────────────────────────────────────
 
-FULL_ARTICLE_SYSTEM = """คุณเป็นนักเขียนข่าวเกษตรและปุ๋ยสำหรับตลาดไทย ตอบเป็น JSON เท่านั้น ห้ามมีข้อความนอก JSON ใช้ภาษาไทยที่อ่านง่าย ห้ามแต่งตัวเลขที่ไม่มีในข่าว"""
+FULL_ARTICLE_SYSTEM = "ตอบเป็น JSON เท่านั้น ไม่มีข้อความนอก JSON ใช้ภาษาไทย กระชับ"
 
-FULL_ARTICLE_PROMPT = """สร้างบทความข่าวภาษาไทยจากข้อมูลด้านล่าง ตอบเป็น JSON เท่านั้น
+FULL_ARTICLE_PROMPT = """ข่าว: {title} | แหล่ง: {source} | หมวด: {tags} | วันที่: {date}
 
-ชื่อข่าว: {title}
-แหล่งข่าว: {source}
-หมวดหมู่: {tags}
-วันที่: {date}
-
-{{
-  "headline_th": "หัวข้อภาษาไทยที่น่าสนใจ",
-  "summary": "สรุป 2-3 ประโยค",
-  "body": "เนื้อหา 4-5 ย่อหน้า: (1) เหตุการณ์และบริบท (2) ผลกระทบตลาดโลก (3) ผลกระทบต่อไทย (4) แนะนำสิ่งที่ควรทำ",
-  "thailand_impact": "ผลกระทบต่อไทย 2-3 ประโยค",
-  "south_thailand_impact": "ผลกระทบภาคใต้ 1-2 ประโยค",
-  "business_tip": "คำแนะนำร้านปุ๋ย 2-3 ข้อ",
-  "key_facts": ["ข้อเท็จจริงที่ 1", "ข้อเท็จจริงที่ 2", "ข้อเท็จจริงที่ 3"],
-  "uncertainty_note": "ปัจจัยที่ยังไม่แน่นอน"
-}}"""
+สร้าง JSON นี้ (ห้ามเพิ่มฟิลด์อื่น):
+{{"headline_th":"หัวข้อไทย","summary":"สรุป 2 ประโยค","body":"ย่อหน้า 1: เหตุการณ์หลัก\\n\\nย่อหน้า 2: ผลกระทบตลาดโลก\\n\\nย่อหน้า 3: ผลต่อไทยและร้านปุ๋ย","thailand_impact":"ผลกระทบไทย 2 ประโยค","south_thailand_impact":"ผลกระทบภาคใต้ 1 ประโยค","business_tip":"แนะนำ 2 ข้อ","key_facts":["ข้อ1","ข้อ2","ข้อ3"],"uncertainty_note":"ปัจจัยไม่แน่นอน"}}"""
 
 
 def build_demo_article(article: "Article") -> dict:
@@ -588,7 +575,7 @@ def full_article(article_id: int, session: Session = Depends(get_session)):
     try:
         message = client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=1500,
+            max_tokens=2000,
             system=FULL_ARTICLE_SYSTEM,
             messages=[{"role": "user", "content": prompt}],
         )
