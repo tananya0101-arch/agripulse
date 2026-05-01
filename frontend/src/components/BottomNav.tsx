@@ -3,11 +3,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const tabs = [
-  { href: "/",         icon: "🏠", label: "หน้าหลัก" },
-  { href: "/search",   icon: "🔍", label: "ค้นหา" },
-  { href: "/brief",    icon: "📋", label: "Brief" },
-  { href: "/watchlist",icon: "📌", label: "Watchlist" },
-  { href: "/studio",   icon: "✨", label: "คอนเทนต์" },
+  { href: "/",        icon: "🏠", label: "หน้าหลัก" },
+  { href: "/rubber",  icon: "🌾", label: "ยางพารา" },
+  { href: "/palm",    icon: "🌴", label: "ปาล์ม" },
+  { href: "/brief",   icon: "📋", label: "Brief" },
+  { href: "/studio",  icon: "✨", label: "คอนเทนต์" },
 ];
 
 export default function BottomNav() {
@@ -33,7 +33,8 @@ export default function BottomNav() {
       }}
     >
       {tabs.map((t) => {
-        const active = pathname === t.href || (t.href !== "/" && pathname.startsWith(t.href));
+        const active =
+          t.href === "/" ? pathname === "/" : pathname.startsWith(t.href);
         return (
           <Link
             key={t.href}
