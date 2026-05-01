@@ -15,18 +15,21 @@ def debug_key():
     api_key = os.getenv("ANTHROPIC_API_KEY", "")
     masked = (api_key[:8] + "..." + api_key[-4:]) if len(api_key) > 12 else f"TOO_SHORT({len(api_key)})"
     is_placeholder = api_key == "your_api_key_here"
+    import json as j
     try:
         client = anthropic.Anthropic(api_key=api_key) if api_key and not is_placeholder else None
         if not client:
             return {"key_present": bool(api_key), "key_masked": masked, "test": "no client"}
         msg = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=200,
-            system="ตอบเป็น JSON เท่านั้น ห้ามมีข้อความนอก JSON",
-            messages=[{"role": "user", "content": 'สรุปข่าว "ราคาปุ๋ยขึ้น 10%" ในรูปแบบ JSON: {"headline": "...", "summary": "..."}'}],
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1500,
+            system=FULL_ARTICLE_SYSTEM,
+            messages=[{"role": "user", "content": FULL_ARTICLE_PROMPT.format(
+                title="India Issues New Urea Tender for 1.5 Million Tonne",
+                source="Reuters", tags="urea, india-tender", date="2026-05-01",
+            )}],
         )
         raw = msg.content[0].text
-        import json as j
         try:
             start = raw.find("{"); end = raw.rfind("}") + 1
             parsed = j.loads(raw[start:end])
@@ -36,7 +39,7 @@ def debug_key():
             parse_ok = False
     except Exception as e:
         return {"key_present": bool(api_key), "key_masked": masked, "error": f"{type(e).__name__}: {str(e)[:300]}"}
-    return {"key_present": bool(api_key), "key_masked": masked, "raw_response": raw, "parse_ok": parse_ok, "parsed": parsed}
+    return {"key_present": bool(api_key), "key_masked": masked, "raw_first_200": raw[:200], "raw_last_100": raw[-100:], "parse_ok": parse_ok, "parsed_keys": list(parsed.keys()) if isinstance(parsed, dict) else parsed}
 
 DISCLAIMER = "\n\n⚠️ สร้างโดย AI AgriPulse · ตรวจสอบข้อเท็จจริงก่อนใช้ · ดูแหล่งต้นฉบับเสมอ"
 
