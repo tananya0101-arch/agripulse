@@ -547,6 +547,8 @@ def full_article(article_id: int, session: Session = Depends(get_session)):
 
     client = get_client()
     if not client:
+        import sys
+        print("⚠️ No Anthropic client — API key missing or placeholder", file=sys.stderr, flush=True)
         return build_demo_article(article)
 
     import json as j
@@ -569,7 +571,9 @@ def full_article(article_id: int, session: Session = Depends(get_session)):
         start = text.find("{")
         end = text.rfind("}") + 1
         data = j.loads(text[start:end])
-    except Exception:
+    except Exception as e:
+        import sys
+        print(f"❌ AI full-article error: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
         return build_demo_article(article)
 
     # Cache in DB
