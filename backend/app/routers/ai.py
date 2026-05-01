@@ -20,12 +20,25 @@ CONTENT_TYPE_LABELS = {
     "executive": "Executive Summary",
 }
 
+TONE_INSTRUCTIONS = {
+    "friendly": (
+        "สไตล์: เพื่อนเล่าให้เพื่อนฟัง ภาษาพูด สบายๆ ใช้คำว่า 'เรา' 'น้า' 'นะ' ได้ "
+        "เปิดด้วยประโยคทักทายหรือคำถามที่ดึงดูด ไม่เป็นทางการ อ่านแล้วรู้สึกใกล้ชิด"
+    ),
+    "professional": (
+        "สไตล์: รายงานธุรกิจทางการ ภาษาเป็นทางการ ใช้คำว่า 'ท่าน' 'องค์กร' ได้ "
+        "ไม่มีอีโมจิ ไม่ใช้คำแสลง ประโยคกระชับ ข้อมูลชัดเจน น้ำหนักความน่าเชื่อถือสูง"
+    ),
+    "warning": (
+        "สไตล์: เตือนภัยตลาดอย่างเร่งด่วน เปิดด้วยสัญญาณเตือน ใช้ภาษาหนักแน่นจริงจัง "
+        "เน้นความเสี่ยง ราคาที่อาจพุ่ง หรือสิ่งที่ต้องระวัง ใส่คำว่า 'ระวัง!' 'แจ้งเตือน' 'ด่วน' ได้ "
+        "ไม่มองโลกในแง่ดีเกินไป ต้องทำให้ผู้อ่านตื่นตัวและลงมือทำทันที"
+    ),
+}
+# Fallback for legacy tones
 TONE_LABELS = {
-    "friendly": "เป็นมิตร เหมือนเพื่อนเล่าให้เพื่อนฟัง",
-    "professional": "เป็นทางการและมืออาชีพ",
-    "simple": "เรียบง่าย เข้าใจง่ายสำหรับทุกคน",
-    "warning": "เตือนตลาด จริงจัง",
-    "educational": "ให้ความรู้ มีสาระ",
+    "simple": "สไตล์: ภาษาง่ายมาก ประโยคสั้น ไม่ใช้ศัพท์วิชาการ",
+    "educational": "สไตล์: ให้ความรู้ มีโครงสร้างชัดเจน อธิบายที่มาและเหตุผล",
 }
 
 
@@ -264,7 +277,7 @@ def generate_content(req: ContentRequest, session: Session = Depends(get_session
 
     client = get_client()
     type_label = CONTENT_TYPE_LABELS.get(req.content_type, req.content_type)
-    tone_label = TONE_LABELS.get(req.tone, req.tone)
+    tone_instruction = TONE_INSTRUCTIONS.get(req.tone) or TONE_LABELS.get(req.tone, "สไตล์: เป็นมิตร ภาษาไทยเข้าใจง่าย")
 
     if not client:
         body = _build_demo_content(article, req.content_type, req.tone) + DISCLAIMER
@@ -292,12 +305,18 @@ def generate_content(req: ContentRequest, session: Session = Depends(get_session
 
     source_text = f"ชื่อข่าว: {article.title}\nชื่อภาษาไทย: {article.title_th or ''}\nสรุป: {article.summary_short or ''}\nแหล่ง: {article.source}"
 
+    system_prompt = (
+        f"คุณเป็น content writer ผู้เชี่ยวชาญด้านธุรกิจเกษตรและปุ๋ยในไทย\n"
+        f"ห้ามคัดลอกบทความต้นฉบับ ห้ามแต่งข้อเท็จจริงที่ไม่มีในแหล่งข้อมูล\n\n"
+        f"กฎโทนเสียงที่ต้องปฏิบัติตามอย่างเคร่งครัด:\n{tone_instruction}"
+    )
+
     try:
         message = client.messages.create(
-            model="claude-sonnet-4-6",
+            model="claude-haiku-4-5-20251001",
             max_tokens=800,
-            system="คุณเป็น content writer ผู้เชี่ยวชาญด้านธุรกิจเกษตรและปุ๋ยในไทย เขียนเนื้อหาเป็นภาษาไทย ห้ามคัดลอกบทความต้นฉบับ ห้ามแต่งข้อเท็จจริงที่ไม่มีในแหล่งข้อมูล",
-            messages=[{"role": "user", "content": f"สร้าง {type_label} จากข่าวต่อไปนี้ โทน: {tone_label}\n\n{source_text}\n\nคำสั่ง: {format_instructions}"}],
+            system=system_prompt,
+            messages=[{"role": "user", "content": f"สร้าง {type_label} จากข่าวต่อไปนี้\n\n{source_text}\n\nคำสั่ง: {format_instructions}"}],
         )
         body = message.content[0].text + DISCLAIMER
     except Exception:

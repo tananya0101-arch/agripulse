@@ -13,11 +13,9 @@ const CONTENT_TYPES = [
 ];
 
 const TONES = [
-  { key: "friendly",     label: "เป็นมิตร" },
-  { key: "professional", label: "มืออาชีพ" },
-  { key: "simple",       label: "เข้าใจง่าย" },
-  { key: "warning",      label: "เตือนตลาด" },
-  { key: "educational",  label: "ให้ความรู้" },
+  { key: "friendly",     label: "🙂 เป็นมิตร",    desc: "เหมือนเพื่อนเล่าให้ฟัง" },
+  { key: "professional", label: "💼 มืออาชีพ",    desc: "ทางการ น่าเชื่อถือ" },
+  { key: "warning",      label: "⚠️ เตือนตลาด",  desc: "จริงจัง กระตุ้นระวัง" },
 ];
 
 function StudioContent() {
@@ -144,14 +142,17 @@ function StudioContent() {
                 key={t.key}
                 onClick={() => { setTone(t.key); setOutput(""); }}
                 style={{
-                  padding: "8px 14px", borderRadius: 20, border: "1.5px solid",
+                  padding: "10px 16px", borderRadius: 12, border: "2px solid",
                   borderColor: tone === t.key ? "#4f46e5" : "#e0e0e0",
                   background: tone === t.key ? "#4f46e5" : "#fff",
                   color: tone === t.key ? "#fff" : "#444",
-                  fontSize: 12, fontWeight: 600, cursor: "pointer",
+                  fontSize: 12, fontWeight: 700, cursor: "pointer",
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+                  flex: 1,
                 }}
               >
-                {t.label}
+                <span>{t.label}</span>
+                <span style={{ fontSize: 10, fontWeight: 400, opacity: 0.8 }}>{t.desc}</span>
               </button>
             ))}
           </div>
