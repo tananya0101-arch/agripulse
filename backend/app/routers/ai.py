@@ -275,6 +275,21 @@ def generate_content(req: ContentRequest, session: Session = Depends(get_session
     if not article:
         raise HTTPException(status_code=404, detail="Article not found")
 
+    # Return cached result if exists for this article + type + tone
+    from sqlmodel import select
+    cached = session.exec(
+        select(GeneratedContent)
+        .where(
+            GeneratedContent.article_id == req.article_id,
+            GeneratedContent.content_type == req.content_type,
+            GeneratedContent.tone == req.tone,
+        )
+        .order_by(GeneratedContent.id.desc())
+        .limit(1)
+    ).first()
+    if cached:
+        return {"id": cached.id, "content_type": cached.content_type, "tone": cached.tone, "body": cached.body, "cached": True}
+
     client = get_client()
     type_label = CONTENT_TYPE_LABELS.get(req.content_type, req.content_type)
     tone_instruction = TONE_INSTRUCTIONS.get(req.tone) or TONE_LABELS.get(req.tone, "สไตล์: เป็นมิตร ภาษาไทยเข้าใจง่าย")
