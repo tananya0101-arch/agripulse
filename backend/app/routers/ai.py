@@ -15,20 +15,24 @@ def debug_key():
     api_key = os.getenv("ANTHROPIC_API_KEY", "")
     masked = (api_key[:8] + "..." + api_key[-4:]) if len(api_key) > 12 else f"TOO_SHORT({len(api_key)})"
     is_placeholder = api_key == "your_api_key_here"
+    results = {}
     try:
         client = anthropic.Anthropic(api_key=api_key) if api_key and not is_placeholder else None
         if client:
-            msg = client.messages.create(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=10,
-                messages=[{"role": "user", "content": "say hi"}],
-            )
-            test_result = "OK: " + msg.content[0].text
+            for model in ["claude-haiku-4-5-20251001", "claude-sonnet-4-6"]:
+                try:
+                    msg = client.messages.create(
+                        model=model, max_tokens=10,
+                        messages=[{"role": "user", "content": "say hi"}],
+                    )
+                    results[model] = "OK: " + msg.content[0].text
+                except Exception as e:
+                    results[model] = f"ERROR: {type(e).__name__}: {str(e)[:200]}"
         else:
-            test_result = "no client"
+            results["client"] = "no client"
     except Exception as e:
-        test_result = f"ERROR: {type(e).__name__}: {e}"
-    return {"key_present": bool(api_key), "key_masked": masked, "is_placeholder": is_placeholder, "test": test_result}
+        results["init"] = f"ERROR: {type(e).__name__}: {e}"
+    return {"key_present": bool(api_key), "key_masked": masked, "is_placeholder": is_placeholder, "models": results}
 
 DISCLAIMER = "\n\n⚠️ สร้างโดย AI AgriPulse · ตรวจสอบข้อเท็จจริงก่อนใช้ · ดูแหล่งต้นฉบับเสมอ"
 
