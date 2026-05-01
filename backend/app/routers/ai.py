@@ -535,6 +535,17 @@ def build_demo_article(article: "Article") -> dict:
 @router.get("/full-article/{article_id}")
 def full_article(article_id: int, session: Session = Depends(get_session)):
     """Return a complete Thai-language article — no external link needed."""
+    try:
+        return _full_article_impl(article_id, session)
+    except HTTPException:
+        raise
+    except Exception as e:
+        import sys
+        print(f"❌ full_article unhandled: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
+        raise HTTPException(status_code=500, detail=f"Unhandled: {type(e).__name__}: {str(e)[:300]}")
+
+
+def _full_article_impl(article_id: int, session):
     article = session.get(Article, article_id)
     if not article:
         raise HTTPException(status_code=404, detail="Article not found")
