@@ -6,7 +6,9 @@ import {
   getFertilizerPrices,
   getPriceHistory,
   getBusinessRecommendations,
+  mergeWithBackend,
 } from "@/services/marketData";
+import { api } from "@/lib/api";
 import type { MarketPrice, PriceHistory, BusinessRecommendation } from "@/types/market";
 
 function Skel({ h = 14, w = "100%" }: { h?: number; w?: string }) {
@@ -63,15 +65,15 @@ export default function FertilizerPage() {
 
   useEffect(() => {
     document.title = "ปุ๋ย & ตลาดโลก — AgriPulse";
-    setTimeout(() => {
-      const p = getFertilizerPrices();
+    api.prices().catch(() => []).then((backendPrices) => {
+      const p = mergeWithBackend(getFertilizerPrices(), backendPrices);
       const h: Record<string, PriceHistory[]> = {};
-      p.forEach((price) => { h[price.id] = getPriceHistory(price.id); });
+      p.forEach((price) => { h[price.id] = getPriceHistory(price.id, price.price ?? undefined); });
       setPrices(p);
       setHistories(h);
       setRec(getBusinessRecommendations("fertilizer")[0]);
       setLoading(false);
-    }, 300);
+    });
   }, []);
 
   const today = new Date().toLocaleDateString("th-TH", { day: "numeric", month: "long", year: "numeric" });

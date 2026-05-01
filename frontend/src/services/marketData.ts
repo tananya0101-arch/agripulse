@@ -6,6 +6,44 @@ import type {
   LocalSignal,
   PriceHistory,
 } from '@/types/market'
+import type { Price } from '@/lib/api'
+
+// Keywords to match backend Price rows to mock MarketPrice entries
+const BACKEND_MATCH: Record<string, string[]> = {
+  'fert-urea-me':       ['ยูเรีย', 'urea'],
+  'fert-dap-usgulf':    ['DAP', 'dap'],
+  'fert-mop-vancouver': ['MOP', 'mop', 'โพแทช', 'potash'],
+  'rubber-rss3':        ['RSS3', 'rss', 'ยางแผ่น'],
+  'rubber-fresh-latex': ['น้ำยางสด', 'fresh latex', 'latex'],
+  'rubber-cup-lump':    ['ยางก้อน', 'cup lump'],
+  'palm-ffb':           ['FFB', 'ffb', 'ปาล์มทะลาย', 'ผลปาล์ม', 'Palm FFB'],
+  'palm-cpo-thai':      ['CPO ไทย', 'cpo thai'],
+  'palm-cpo-malaysia':  ['FCPO', 'fcpo', 'cpo malaysia'],
+}
+
+export function mergeWithBackend(mockPrices: MarketPrice[], backendPrices: Price[]): MarketPrice[] {
+  return mockPrices.map(mock => {
+    const keywords = BACKEND_MATCH[mock.id] ?? []
+    const match = backendPrices.find(bp =>
+      keywords.some(kw =>
+        (bp.product_th ?? '').toLowerCase().includes(kw.toLowerCase()) ||
+        bp.product.toLowerCase().includes(kw.toLowerCase())
+      )
+    )
+    if (!match) return mock
+    const prevPrice = match.price / (1 + (match.change_percent ?? 0) / 100)
+    return {
+      ...mock,
+      price: match.price,
+      changePercent: match.change_percent ?? mock.changePercent,
+      changeValue: Math.round((match.price - prevPrice) * 100) / 100,
+      previousPrice: Math.round(prevPrice * 100) / 100,
+      trend: (match.trend_direction as MarketPrice['trend']) ?? mock.trend,
+      reportedAt: match.date ?? mock.reportedAt,
+      sourceName: match.source || mock.sourceName,
+    }
+  })
+}
 
 const TODAY = '2026-05-01'
 
@@ -226,21 +264,21 @@ export function getFertilizerPrices(): MarketPrice[] {
       commodityTh: 'ปุ๋ยเคมี',
       productType: 'urea_fob_me',
       productTypeTh: 'ยูเรีย FOB Middle East',
-      price: 298,
+      price: 858,
       currency: 'USD',
       unit: 'tonne',
       priceType: 'FOB',
       marketLocation: 'Middle East',
-      sourceName: 'Argus Media',
+      sourceName: 'Investing.com',
       sourceType: 'industry',
-      sourceUrl: 'https://www.argusmedia.com',
+      sourceUrl: 'https://www.investing.com',
       reportedAt: TODAY,
-      previousPrice: 285,
-      changeValue: 13,
-      changePercent: 4.56,
+      previousPrice: 820,
+      changeValue: 38,
+      changePercent: 4.63,
       trend: 'up',
       confidence: 'high',
-      notes: 'ราคา FOB ยังไม่รวมค่าขนส่งและภาษีนำเข้า ราคาไทยจะสูงกว่าประมาณ 30-50 USD/tonne',
+      notes: 'Urea Granular FOB Middle East ยังไม่รวมค่าขนส่งและภาษีนำเข้า',
     },
     {
       id: 'fert-dap-usgulf',
@@ -308,13 +346,15 @@ const HISTORY_MAP: Record<string, PriceHistory[]> = {
   'palm-cpo-malaysia': makeHistory(3850, 0.016),
   'durian-monthong-chanthaburi': makeHistory(105, 0.04),
   'durian-monthong-yala': makeHistory(140, 0.035),
-  'fert-urea-me': makeHistory(298, 0.022),
+  'fert-urea-me': makeHistory(858, 0.022),
   'fert-dap-usgulf': makeHistory(548, 0.018),
   'fert-mop-vancouver': makeHistory(295, 0.015),
 }
 
-export function getPriceHistory(priceId: string): PriceHistory[] {
-  return HISTORY_MAP[priceId] ?? []
+export function getPriceHistory(priceId: string, currentPrice?: number): PriceHistory[] {
+  const history = HISTORY_MAP[priceId] ?? []
+  if (currentPrice === undefined || history.length === 0) return history
+  return [...history.slice(0, -1), { date: history[history.length - 1].date, price: currentPrice }]
 }
 
 // ── Business recommendations ───────────────────────────────────────────────

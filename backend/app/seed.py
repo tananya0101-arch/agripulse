@@ -61,10 +61,10 @@ def seed_prices(session: Session):
         return
     today = datetime.utcnow().strftime("%Y-%m-%d")
     prices = [
-        Price(product="Urea", product_th="ยูเรีย", price=385, currency="USD", unit="metric_ton",
-              price_type="FOB", region="Middle East", source="Reuters", date=today,
+        Price(product="Urea Granular", product_th="ยูเรีย", price=858, currency="USD", unit="metric_ton",
+              price_type="FOB", region="Middle East", source="Investing.com", date=today,
               trend_direction="up", change_percent=4.5,
-              notes="India tender activity supporting prices"),
+              notes="Urea Granular FOB Middle East — India tender activity supporting prices"),
         Price(product="DAP", product_th="DAP", price=610, currency="USD", unit="metric_ton",
               price_type="FOB", region="North Africa", source="Reuters", date=today,
               trend_direction="flat", change_percent=0.0),
@@ -74,8 +74,12 @@ def seed_prices(session: Session):
         Price(product="Rubber Sheet RSS3", product_th="ยางแผ่น RSS3", price=58.50, currency="THB", unit="kg",
               price_type="local_market", region="Southern Thailand", source="RAOT", date=today,
               trend_direction="flat", change_percent=-0.3),
-        Price(product="Palm Fruit", product_th="ปาล์มทะลาย", price=4.80, currency="THB", unit="kg",
-              price_type="farmgate", region="Thailand", source="กรมวิชาการเกษตร", date=today,
+        Price(product="Fresh Latex DRC 60%", product_th="น้ำยางสด DRC 60%", price=53.50, currency="THB", unit="kg",
+              price_type="farmgate", region="Southern Thailand", source="RAOT", date=today,
+              trend_direction="up", change_percent=1.9,
+              notes="ราคารับซื้อน้ำยางสด DRC 60% เฉลี่ยระดับประเทศ"),
+        Price(product="Palm FFB", product_th="ผลปาล์มสด (FFB)", price=4.80, currency="THB", unit="kg",
+              price_type="farmgate", region="Southern Thailand", source="กรมการค้าภายใน", date=today,
               trend_direction="up", change_percent=2.1),
     ]
     for p in prices:

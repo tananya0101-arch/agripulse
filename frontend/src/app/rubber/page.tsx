@@ -8,7 +8,9 @@ import {
   getPriceHistory,
   getBusinessRecommendations,
   getMarketInsight,
+  mergeWithBackend,
 } from "@/services/marketData";
+import { api } from "@/lib/api";
 import type { MarketPrice, PriceHistory, MarketInsight, BusinessRecommendation } from "@/types/market";
 
 function Skel({ h = 14, w = "100%" }: { h?: number; w?: string }) {
@@ -56,16 +58,16 @@ export default function RubberPage() {
 
   useEffect(() => {
     document.title = "ตลาดยางพารา — AgriPulse";
-    setTimeout(() => {
-      const p = getRubberPrices();
+    api.prices().catch(() => []).then((backendPrices) => {
+      const p = mergeWithBackend(getRubberPrices(), backendPrices);
       const h: Record<string, PriceHistory[]> = {};
-      p.forEach((price) => { h[price.id] = getPriceHistory(price.id); });
+      p.forEach((price) => { h[price.id] = getPriceHistory(price.id, price.price ?? undefined); });
       setPrices(p);
       setHistories(h);
       setInsight(getMarketInsight("rubber"));
       setRec(getBusinessRecommendations("rubber")[0]);
       setLoading(false);
-    }, 300);
+    });
   }, []);
 
   const today = new Date().toLocaleDateString("th-TH", { day: "numeric", month: "long", year: "numeric" });
