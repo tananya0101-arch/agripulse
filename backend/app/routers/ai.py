@@ -604,7 +604,7 @@ def full_article(article_id: int, session: Session = Depends(get_session)):
     except Exception as e:
         import sys
         print(f"❌ AI full-article error: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
-        return build_demo_article(article)
+        raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {str(e)[:500]}")
 
     # Cache in DB
     if data.get("body"):
